@@ -35,6 +35,8 @@ class SchduleAlgorithm:
                 stat_init[machine_id].append(row["instance_id"])
 
         self.state1 = stat_init
+        for key in self.state1.keys():
+            self.state2[key] = []
 
     def isMachineAvailable(self, machine, inst):
         """
@@ -43,26 +45,26 @@ class SchduleAlgorithm:
         :param inst: inst name
         """
         inst_id = np.argwhere(self.inst_fea[:, 0] == int(inst[5:]))
-        print('inst_id', inst_id)
 
         all_inst = self.inst_fea[inst_id, 1:]
         for i in self.state2[machine]:
             i = int(i[5:])
             index = np.argwhere(self.inst_fea[:, 0] == i)
             all_inst += self.inst_fea[index, 1:]
+        # print(all_inst[0, 0, :98].shape, self.machine_fea[0,:].shape)
         machine_id = np.argwhere(self.machine_fea[:, 0] == int(machine[8:]))
-        cpu = np.max(self.inst_fea[1:99]/self.machine_fea[machine_id, 1:99])
-        mem = np.max(self.inst_fea[99:197]/self.machine_fea[machine_id, 99:197])
-        others = np.max(self.inst_fea[197:]/self.machine_fea[machine_id, 197:])
+        cpu = np.max(all_inst[0, 0, :98]/self.machine_fea[machine_id, 1:99])
+        mem = np.max(all_inst[0, 0, 98:196]/self.machine_fea[machine_id, 99:197])
+        others = np.max(all_inst[0, 0, 196:]/self.machine_fea[machine_id, 197:])
         if mem > 1 or others > 1 or cpu > self.cpu_thresh:
             return False
         return True
 
     def findFeasible(self):
+        print('Finding feasibel solution ...')
         insts = self.inst_fea[:, 0]
         for i in range(insts.shape[0]):
             inst = 'inst_'+(str(int(insts[i])))
-            print(inst)
             flag = 0
             for machine in self.state2:
                 if self.isMachineAvailable(machine, inst):
@@ -74,6 +76,7 @@ class SchduleAlgorithm:
                 raise RuntimeError('No available machine for current inst!')
 
     def schduling(self):
+        print('Geting schduling results ... ')
         machines = self.machine_fea[:, 0]
         for i in range(machines.shape[0]):
             machine = 'machine_'+(str(int(machines[i])))
@@ -101,11 +104,11 @@ class SchduleAlgorithm:
             # TODO: Need to evaluate whether the machine state is legal
 
 
-if __name__=='__main__':
-    inst_path = '/home/administrator/zhengyi/Alibaba_inc_dubbo/algorithm/data/instances.npy'
-    machine_path = '/home/administrator/zhengyi/Alibaba_inc_dubbo/algorithm/data/machines.npy'
-    file_machine_resources = '/home/administrator/zhengyi/Alibaba_inc_dubbo/algorithm/data/scheduling_preliminary_a_machine_resources_20180606.csv'
-    file_instance_deploy = '/home/administrator/zhengyi/Alibaba_inc_dubbo/algorithm/data/scheduling_preliminary_a_instance_deploy_20180606.csv'
+if __name__ == '__main__':
+    inst_path = './data/instances.npy'
+    machine_path = './data/machines.npy'
+    file_machine_resources = './data/scheduling_preliminary_a_machine_resources_20180606.csv'
+    file_instance_deploy = './data/scheduling_preliminary_a_instance_deploy_20180606.csv'
     cpu_thresh = 0.5
     run_schdule = SchduleAlgorithm(inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh)
     run_schdule.run()
