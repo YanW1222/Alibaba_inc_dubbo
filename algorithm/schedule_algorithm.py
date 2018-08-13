@@ -5,7 +5,7 @@ import numpy as np
 
 
 class SchduleAlgorithm:
-    def __init__(self, inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh):
+    def __init__(self, inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh, save_path):
         self.inst_fea = np.load(inst_path)
         self.machine_fea = np.load(machine_path)
         self.state1 = {}
@@ -13,6 +13,7 @@ class SchduleAlgorithm:
         self.cpu_thresh = cpu_thresh
         self.machine_file = file_machine_resources
         self.instance_file = file_instance_deploy
+        self.save_path = save_path
 
     def run(self):
         self.get_machine_stat_init()
@@ -66,42 +67,59 @@ class SchduleAlgorithm:
         for i in range(insts.shape[0]):
             inst = 'inst_'+(str(int(insts[i])))
             flag = 0
-            for machine in self.state2:
+            for machine in self.state2.keys():
                 if self.isMachineAvailable(machine, inst):
                     self.state2[machine].append(inst)
                     flag = 1
+                    break
                 else:
                     pass
             if not flag:
+                print(inst)
                 raise RuntimeError('No available machine for current inst!')
 
     def schduling(self):
         print('Geting schduling results ... ')
-        machines = self.machine_fea[:, 0]
-        for i in range(machines.shape[0]):
-            machine = 'machine_'+(str(int(machines[i])))
-            ori_state = self.state1[machine]
-            cur_state = self.state2[machine]
-            print('origin state: ', ori_state)
-            print('current state: ', cur_state)
-            out_inst = list(set(ori_state)^set(cur_state))
-            print('out inst: ', out_inst)
-            in_inst = list(set(ori_state)^set(cur_state))
-            print('in inst', in_inst)
-            for inst in out_inst:
-                flag = 0
-                for j in range(i+1, len(machines)):
-                    if self.isMachineAvailable(machines[j], inst):
-                        self.state2[machines[j]].append(inst)
-                        flag = 1
-                    else:
-                        pass
-                if not flag:
-                    raise RuntimeError('No available machine for current inst!')
-            for inst in in_inst:
-                self.state2[machines[i]].append(inst)
+        save_path = self.save_path
+        with open(save_path, 'w') as fout:
+            machines = self.machine_fea[:, 0]
+            for i in range(machines.shape[0]):
+                machine = 'machine_'+(str(int(machines[i])))
+                ori_state = self.state1[machine]
+                cur_state = self.state2[machine]
+                print('origin state: ', ori_state)
+                print('current state: ', cur_state)
+                out_inst = list(set(ori_state)^set(cur_state))
+                print('out inst: ', out_inst)
+                in_inst = list(set(cur_state)^set(ori_state))
+                print('in inst', in_inst)
+                for inst in out_inst:
+                    flag = 0
+                    for j in range(i+1, len(machines)):
+                        if self.isMachineAvailable(machines[j], inst):
+                            out_machine = 'machine_'+str(machines[j])
+                            self.state2[out_machine].append(inst)
+                            self.state2[machine].pop(self.state2[machine].index(inst))
+                            fout.write('{}, {}'.format(inst, out_machine))
+                            flag = 1
+                            break
+                        else:
+                            pass
+                    if not flag:
+                        raise RuntimeError('No available machine for current inst!')
+                for inst in in_inst:
+                    flag = 0
+                    for j in range(i+1, len(machines)):
+                        if inst in self.state2[machine[j]]:
+                            out_machine = 'machine_'+str(machines[j])
+                            self.state2[machines[i]].append(inst)
+                            self.state2[out_machine].pop(self.state2[out_machine].index(inst))
+                            fout.write('{}, {}'.format(inst, machine))
+                            flag = 1
+                            break
 
-            # TODO: Need to evaluate whether the machine state is legal
+                    if not flag:
+                        raise RuntimeError('No available machine for current inst!')
 
 
 if __name__ == '__main__':
@@ -109,6 +127,8 @@ if __name__ == '__main__':
     machine_path = './data/machines.npy'
     file_machine_resources = './data/scheduling_preliminary_a_machine_resources_20180606.csv'
     file_instance_deploy = './data/scheduling_preliminary_a_instance_deploy_20180606.csv'
+    save_path = './data/submit_team_05_hhmmss.csv'
+
     cpu_thresh = 0.5
-    run_schdule = SchduleAlgorithm(inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh)
+    run_schdule = SchduleAlgorithm(inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh, save_path)
     run_schdule.run()
