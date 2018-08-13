@@ -89,14 +89,14 @@ class SchduleAlgorithm:
                 cur_state = self.state2[machine]
                 print('origin state: ', ori_state)
                 print('current state: ', cur_state)
-                out_inst = list(set(ori_state)^set(cur_state))
+                out_inst = list(set(ori_state)-set(cur_state))
                 print('out inst: ', out_inst)
-                in_inst = list(set(cur_state)^set(ori_state))
+                in_inst = list(set(cur_state)-set(ori_state))
                 print('in inst', in_inst)
                 for inst in out_inst:
                     flag = 0
                     for j in range(i+1, len(machines)):
-                        if self.isMachineAvailable(machines[j], inst):
+                        if self.isMachineAvailable(machines[j], inst):  # TODO: no cpu_thresh
                             out_machine = 'machine_'+str(machines[j])
                             self.state2[out_machine].append(inst)
                             self.state2[machine].pop(self.state2[machine].index(inst))
@@ -110,9 +110,9 @@ class SchduleAlgorithm:
                 for inst in in_inst:
                     flag = 0
                     for j in range(i+1, len(machines)):
-                        if inst in self.state2[machine[j]]:
-                            out_machine = 'machine_'+str(machines[j])
-                            self.state2[machines[i]].append(inst)
+                        out_machine = 'machine_' + str(machines[j])
+                        if inst in self.state2[out_machine]:
+                            self.state2[machine].append(inst)
                             self.state2[out_machine].pop(self.state2[out_machine].index(inst))
                             fout.write('{}, {}'.format(inst, machine))
                             flag = 1
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     machine_path = './data/machines.npy'
     file_machine_resources = './data/scheduling_preliminary_a_machine_resources_20180606.csv'
     file_instance_deploy = './data/scheduling_preliminary_a_instance_deploy_20180606.csv'
-    save_path = './data/submit_team_05_hhmmss.csv'
+    save_path = './data/submit_team_05_hhmmss.txt'
 
     cpu_thresh = 0.5
     run_schdule = SchduleAlgorithm(inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh, save_path)
