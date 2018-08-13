@@ -39,7 +39,7 @@ class SchduleAlgorithm:
         for key in self.state1.keys():
             self.state2[key] = []
 
-    def isMachineAvailable(self, machine, inst):
+    def isMachineAvailable(self, machine, inst, cpu_thresh):
         """
         evaluate whether the machine in stat2 is available
         :param machine: machine name
@@ -57,7 +57,7 @@ class SchduleAlgorithm:
         cpu = np.max(all_inst[0, 0, :98]/self.machine_fea[machine_id, 1:99])
         mem = np.max(all_inst[0, 0, 98:196]/self.machine_fea[machine_id, 99:197])
         others = np.max(all_inst[0, 0, 196:]/self.machine_fea[machine_id, 197:])
-        if mem > 1 or others > 1 or cpu > self.cpu_thresh:
+        if mem > 1 or others > 1 or cpu > cpu_thresh:
             return False
         return True
 
@@ -68,7 +68,7 @@ class SchduleAlgorithm:
             inst = 'inst_'+(str(int(insts[i])))
             flag = 0
             for machine in self.state2.keys():
-                if self.isMachineAvailable(machine, inst):
+                if self.isMachineAvailable(machine, inst, self.cpu_thresh):
                     self.state2[machine].append(inst)
                     flag = 1
                     break
@@ -96,7 +96,7 @@ class SchduleAlgorithm:
                 for inst in out_inst:
                     flag = 0
                     for j in range(i+1, len(machines)):
-                        if self.isMachineAvailable(machines[j], inst):  # TODO: no cpu_thresh
+                        if self.isMachineAvailable(machines[j], inst, 1):
                             out_machine = 'machine_'+str(machines[j])
                             self.state2[out_machine].append(inst)
                             self.state2[machine].pop(self.state2[machine].index(inst))
