@@ -81,9 +81,13 @@ class SchduleAlgorithm:
                 else:
                     app_num[app] += 1
             for app in self.app_interfer[in_app].keys():
+                sum = 0
                 if app in app_num.keys():
-                    if app_num[app] > self.app_interfer[in_app][app]:
-                        return True
+                    sum += self.app_interfer[in_app][app]
+            if (in_app not in app_num) and sum>=1:
+                return False
+            elif app_num[in_app] > sum:
+                return True
         return False
 
 
