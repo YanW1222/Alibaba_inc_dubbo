@@ -5,17 +5,22 @@ import numpy as np
 
 
 class SchduleAlgorithm:
-    def __init__(self, inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh, save_path):
+    def __init__(self, inst_path, machine_path, file_machine_resources, file_instance_deploy, file_app_interference, cpu_thresh, save_path):
         self.inst_fea = np.load(inst_path)
         self.machine_fea = np.load(machine_path)
         self.state1 = {}
         self.state2 = {}
+        self.app_interfer = {}
+        self.inst2app = {}
         self.cpu_thresh = cpu_thresh
         self.machine_file = file_machine_resources
         self.instance_file = file_instance_deploy
+        self.interfer_file = file_app_interference
         self.save_path = save_path
 
     def run(self):
+        self.get_inst2app()
+        self.get_rule_A_B()
         self.get_machine_stat_init()
         self.findFeasible()
         self.schduling()
@@ -39,12 +44,47 @@ class SchduleAlgorithm:
         for key in self.state1.keys():
             self.state2[key] = []
 
+    def get_inst2app(self):
+        df_instance_deploy = pd.read_csv(self.instance_file, header=None, encoding='gbk')
+        df_instance_deploy.columns = ['instance_id', 'app_id', 'machine_id']
+
+        for index, row in df_instance_deploy.iterrows():
+            self.inst2app[row['instance_id']] = row['app_id']
+
+    def get_rule_A_B(self):
+        df_app_interference = pd.read_csv(self.interfer_file, header=None,
+                                          encoding='gbk')
+        df_app_interference.columns = ['app_id1', 'app_id2', 'k']
+        for index, row in df_app_interference.iterrows():
+            app_id1 = row["app_id1"]
+            app_id2 = row["app_id2"]
+            if not app_id2 in self.app_interfer.keys():
+                self.app_interfer[app_id2] = {app_id1: row["k"]}
+            else:
+                self.app_interfer[app_id2][app_id1] = row['k']
+
     def isMachineAvailable(self, machine, inst, cpu_thresh):
         """
         evaluate whether the machine in stat2 is available
         :param machine: machine name
         :param inst: inst name
         """
+        in_app = self.inst2app[inst]
+        if in_app in self.app_interfer.keys():
+            cur_insts = self.state2[machine]
+            app_num = {}
+            # count app number in current machine
+            for inst in cur_insts:
+                app = self.inst2app[inst]
+                if app not in app_num.keys():
+                    app_num[app] = 1
+                else:
+                    app_num[app] += 1
+            for app in self.app_interfer[in_app].keys():
+                if app in app_num.keys():
+                    if app_num[app] > self.app_interfer[in_app][app]:
+                        return False
+
         inst_id = np.argwhere(self.inst_fea[:, 0] == int(inst[5:]))
 
         all_inst = self.inst_fea[inst_id, 1:]
@@ -127,8 +167,9 @@ if __name__ == '__main__':
     machine_path = './data/machines.npy'
     file_machine_resources = './data/scheduling_preliminary_a_machine_resources_20180606.csv'
     file_instance_deploy = './data/scheduling_preliminary_a_instance_deploy_20180606.csv'
+    file_app_interference = './data/scheduling_preliminary_a_app_interference_20180606.csv'
     save_path = './data/submit_team_05_hhmmss.txt'
 
     cpu_thresh = 0.5
-    run_schdule = SchduleAlgorithm(inst_path, machine_path, file_machine_resources, file_instance_deploy, cpu_thresh, save_path)
+    run_schdule = SchduleAlgorithm(inst_path, machine_path, file_machine_resources, file_instance_deploy, file_app_interference, cpu_thresh, save_path)
     run_schdule.run()
