@@ -63,7 +63,7 @@ class SchduleAlgorithm:
             else:
                 self.app_interfer[app_id2][app_id1] = row['k']
 
-    def isMachineAvailable(self, machine, inst, cpu_thresh):
+    def isAppInterference(self, machine, inst):
         """
         evaluate whether the machine in stat2 is available
         :param machine: machine name
@@ -83,25 +83,12 @@ class SchduleAlgorithm:
             for app in self.app_interfer[in_app].keys():
                 if app in app_num.keys():
                     if app_num[app] > self.app_interfer[in_app][app]:
-                        return False
+                        return True
+        return False
 
-        inst_id = np.argwhere(self.inst_fea[:, 0] == int(inst[5:]))
 
-        all_inst = self.inst_fea[inst_id, 1:]
-        for i in self.state2[machine]:
-            i = int(i[5:])
-            index = np.argwhere(self.inst_fea[:, 0] == i)
-            all_inst += self.inst_fea[index, 1:]
-        # print(all_inst[0, 0, :98].shape, self.machine_fea[0,:].shape)
-        machine_id = np.argwhere(self.machine_fea[:, 0] == int(machine[8:]))
-        cpu = np.max(all_inst[0, 0, :98]/self.machine_fea[machine_id, 1:99])
-        mem = np.max(all_inst[0, 0, 98:196]/self.machine_fea[machine_id, 99:197])
-        others = np.max(all_inst[0, 0, 196:]/self.machine_fea[machine_id, 197:])
-        if mem > 1 or others > 1 or cpu > cpu_thresh:
-            return False
-        return True
 
-    def findFeasible(self):
+    def findFeasible_2(self):
         print('Finding feasibel solution ...')
         insts = self.inst_fea[:, 0]
         for i in range(insts.shape[0]):
@@ -117,6 +104,72 @@ class SchduleAlgorithm:
             if not flag:
                 print(inst)
                 raise RuntimeError('No available machine for current inst!')
+
+    def findFeasible_3(self):
+        print('Finding feasibel solution ...')
+        
+        machines_load = np.zeros((self.machine_fea.shape[0], 200))
+        from time import time
+        count = 0
+        begin = time()
+        for inst_id in range(self.inst_fea.shape[0]):
+            for machine_id in range(self.machine_fea.shape[0]):
+                machine_load = machines_load[machine_id]
+                after_load = machine_load + self.inst_fea[inst_id, 1:]
+                
+                cpu = np.max(after_load[:98]/self.machine_fea[machine_id, 1:99])
+                mem = np.max(after_load[98:196]/self.machine_fea[machine_id, 99:197])
+                others = np.max(after_load[196:]/self.machine_fea[machine_id, 197:])
+
+                if mem>1 or others>1 or cpu>self.cpu_thresh:
+                    pass
+                else:
+                    machines_load[machine_id] = after_load
+                    machine_str_id = "machine_" + str(int(self.machine_fea[machine_id, 0]))
+                    inst_str_id = "inst_" + str(int(self.inst_fea[inst_id, 0]))
+
+                    self.state2[machine_str_id].append(inst_str_id)
+
+                    count += 1
+                    print("count %d: time: %d"%(count, time()-begin))
+
+                    break
+
+    def findFeasible(self):
+        print('Finding feasibel solution ...')
+        
+        machines_load = np.zeros((self.machine_fea.shape[0], 200))
+        from time import time
+        count = 0
+        begin = time()
+        for inst_id in range(self.inst_fea.shape[0]):
+            flag = 0
+            for machine_id in range(self.machine_fea.shape[0]):
+                machine_load = machines_load[machine_id]
+                after_load = machine_load + self.inst_fea[inst_id, 1:]
+                
+                cpu = np.max(after_load[:98]/self.machine_fea[machine_id, 1:99])
+                mem = np.max(after_load[98:196]/self.machine_fea[machine_id, 99:197])
+                others = np.max(after_load[196:]/self.machine_fea[machine_id, 197:])
+                machine_str_id = "machine_" + str(int(self.machine_fea[machine_id, 0]))
+                inst_str_id = "inst_" + str(int(self.inst_fea[inst_id, 0]))
+                if mem>1 or others>1 or cpu>self.cpu_thresh or self.isAppInterference(machine_str_id, inst_str_id):
+                    pass
+                else:
+                    machines_load[machine_id] = after_load
+                    flag = 1
+
+                    self.state2[machine_str_id].append(inst_str_id)
+
+                    count += 1
+                    if count% 10000 == 0 :
+                        print("count %d: time: %d"%(count, time()-begin))
+
+                    break
+                    
+            if not flag:
+                raise RuntimeError('No available machine for current inst!')
+
 
     def schduling(self):
         print('Geting schduling results ... ')
