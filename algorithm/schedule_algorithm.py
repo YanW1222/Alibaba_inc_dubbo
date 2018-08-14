@@ -92,53 +92,6 @@ class SchduleAlgorithm:
                 return True
         return False
 
-    def findFeasible_2(self):
-        print('Finding feasibel solution ...')
-        insts = self.inst_fea[:, 0]
-        for i in range(insts.shape[0]):
-            inst = 'inst_'+(str(int(insts[i])))
-            flag = 0
-            for machine in self.state2.keys():
-                if self.isMachineAvailable(machine, inst, self.cpu_thresh):
-                    self.state2[machine].append(inst)
-                    flag = 1
-                    break
-                else:
-                    pass
-            if not flag:
-                print(inst)
-                raise RuntimeError('No available machine for current inst!')
-
-    def findFeasible_3(self):
-        print('Finding feasibel solution ...')
-        
-        machines_load = np.zeros((self.machine_fea.shape[0], 200))
-        from time import time
-        count = 0
-        begin = time()
-        for inst_id in range(self.inst_fea.shape[0]):
-            for machine_id in range(self.machine_fea.shape[0]):
-                machine_load = machines_load[machine_id]
-                after_load = machine_load + self.inst_fea[inst_id, 1:]
-                
-                cpu = np.max(after_load[:98]/self.machine_fea[machine_id, 1:99])
-                mem = np.max(after_load[98:196]/self.machine_fea[machine_id, 99:197])
-                others = np.max(after_load[196:]/self.machine_fea[machine_id, 197:])
-
-                if mem>1 or others>1 or cpu>self.cpu_thresh:
-                    pass
-                else:
-                    machines_load[machine_id] = after_load
-                    machine_str_id = "machine_" + str(int(self.machine_fea[machine_id, 0]))
-                    inst_str_id = "inst_" + str(int(self.inst_fea[inst_id, 0]))
-
-                    self.state2[machine_str_id].append(inst_str_id)
-
-                    count += 1
-                    print("count %d: time: %d"%(count, time()-begin))
-
-                    break
-
     def findFeasible(self):
         print('Finding feasibel solution ...')
         
