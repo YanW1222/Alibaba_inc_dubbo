@@ -80,18 +80,17 @@ class SchduleAlgorithm:
                     app_num[app] = 1
                 else:
                     app_num[app] += 1
-            sum = 0
+            mini = 1e9
             for app in self.app_interfer[in_app].keys():
                 if app in app_num.keys():
-                    sum += self.app_interfer[in_app][app]
-            if (in_app not in app_num):
-                if sum == 0:
+                    if self.app_interfer[in_app][app] < mini:
+                        mini = self.app_interfer[in_app][app]
+            if in_app not in app_num.keys():
+                if mini == 0:
                     return True
-            elif app_num[in_app] > sum:
+            elif app_num[in_app] >= mini:
                 return True
         return False
-
-
 
     def findFeasible_2(self):
         print('Finding feasibel solution ...')
@@ -174,7 +173,6 @@ class SchduleAlgorithm:
                     
             if not flag:
                 raise RuntimeError('No available machine for current inst!')
-
 
     def schduling(self):
         print('Geting schduling results ... ')
